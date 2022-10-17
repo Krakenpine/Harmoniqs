@@ -251,11 +251,11 @@ void updateControl() {
   voct = mozziAnalogRead(VOCT_PIN);
   
   if (octplus2) {
-    freq1 = 220;
+    freq1 = 261.63;
   } else if (octminus2) {
-    freq1 = 13.75;
+    freq1 = 16.35;
   } else {
-    freq1 = 55;
+    freq1 = 65.41;
   }
 
   temp = mozziAnalogRead(3);

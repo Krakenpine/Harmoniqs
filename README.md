@@ -12,6 +12,7 @@
  are 32 entry long, so there is lot's of distortion and aliasing-type noise.
 
  TO DO:
+ 
  When switching to disable-gate-mode with CV, it can lock wrong voice to sound eternally,
  if multiple keys have been pressed before that.
 
