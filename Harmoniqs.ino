@@ -234,7 +234,7 @@ void updateControl() {
 
   portamento = (float) mozziAnalogRead(PORTAMENTO_PIN);
 
-  portamento /= 1024.0f;
+  portamento *= h_bigger_constant;
   aSmooth.setSmoothness(portamento);
 
   gate_prev = gate;
@@ -326,6 +326,14 @@ void updateControl() {
     }
 
     if (gate && !gate_prev) {
+
+      if (adsr_to_vol_cv) {
+        cv_gate_counter = 0;
+        envelope2.noteOff();
+        envelope3.noteOff();
+        envelope4.noteOff();
+      }
+
       switch(cv_gate_counter) {
         case 0:
           envelope1.noteOn();
@@ -400,7 +408,7 @@ void updateControl() {
   }
 
 
-  if (adsr_to_vol_midi &&midi_gates[0]) {
+  if (adsr_to_vol_midi && midi_gates[0]) {
     envelopes[0] = 255;
   }
 
@@ -416,7 +424,7 @@ void updateControl() {
     envelopes[3] = 255;
   }
 
-  harmonics_levels_int[0] = 0;
+  harmonics_levels_int[0] = 127;
   harmonics_levels_int[1] = 0;
   harmonics_levels_int[2] = 0;
   harmonics_levels_int[3] = 0;
@@ -426,61 +434,58 @@ void updateControl() {
   harmonics_levels_int[7] = 0;
   
   if (harm_type >= 896) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[2] = harm_type - 896;
     harmonics_levels_int[4] = harm_type - 896;
     harmonics_levels_int[5] = 127 - (harm_type - 896);
     harmonics_levels_int[6] = 127;
     harmonics_levels_int[7] = 127;
   } else if (harm_type >= 768) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[5] = 127;
     harmonics_levels_int[6] = 127;
     harmonics_levels_int[7] = harm_type - 768;
   } else if (harm_type >= 640) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[2] = 127 - (harm_type - 639);
     harmonics_levels_int[3] = 127 - (harm_type - 639);
     harmonics_levels_int[5] = 127;
     harmonics_levels_int[6] = harm_type - 639;
   } else if (harm_type >= 512) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[1] = 127 - (harm_type - 512);
     harmonics_levels_int[2] = 127;
     harmonics_levels_int[3] = 127;
     harmonics_levels_int[4] = 127 - (harm_type - 512);
     harmonics_levels_int[5] = (harm_type - 512);
   } else if (harm_type >= 384) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[1] = 127;
     harmonics_levels_int[2] = 127;
     harmonics_levels_int[3] = 127;
     harmonics_levels_int[4] = (harm_type - 384);
   } else if (harm_type >= 256) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[1] = 127;
     harmonics_levels_int[2] = 127;
     harmonics_levels_int[3] = (harm_type - 256);
   } else if (harm_type >= 128) {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[1] = 127;
     harmonics_levels_int[2] = (harm_type - 128);
   } else {
-    harmonics_levels_int[0] = 127;
+    //harmonics_levels_int[0] = 127;
     harmonics_levels_int[1] = harm_type;
   }
 
   for (int i = 0; i < 32 ; i++) {
-    t2[i] = (oma_wavetable2[i] * harmonics_levels_int[1]) >> 9;
-    t3[i] = (oma_wavetable3[i] * harmonics_levels_int[2]) >> 9;  
-    t4[i] = (oma_wavetable4[i] * harmonics_levels_int[3]) >> 9;
-    t5[i] = (oma_wavetable5[i] * harmonics_levels_int[4]) >> 9;
-    t6[i] = (oma_wavetable6[i] * harmonics_levels_int[5]) >> 9;
-    t7[i] = (oma_wavetable7[i] * harmonics_levels_int[6]) >> 9;
-    t8[i] = (oma_wavetable8[i] * harmonics_levels_int[7]) >> 9;
-  }
-
-  for (int i = 0 ; i < 32; i++) {
+    t2[i] = (oma_wavetable2[i] * harmonics_levels_int[1]) >> 8;
+    t3[i] = (oma_wavetable3[i] * harmonics_levels_int[2]) >> 8;  
+    t4[i] = (oma_wavetable4[i] * harmonics_levels_int[3]) >> 8;
+    t5[i] = (oma_wavetable5[i] * harmonics_levels_int[4]) >> 8;
+    t6[i] = (oma_wavetable6[i] * harmonics_levels_int[5]) >> 8;
+    t7[i] = (oma_wavetable7[i] * harmonics_levels_int[6]) >> 8;
+    t8[i] = (oma_wavetable8[i] * harmonics_levels_int[7]) >> 8;
     output_table[i] = t2[i] + t3[i] + t4[i] + t5[i] + t6[i] + t7[i] + t8[i]; 
   }
 
@@ -489,18 +494,12 @@ void updateControl() {
 int updateAudio() {
   int tempz[4] = { saw1.next(), saw2.next(), saw3.next(), saw4.next() };
 
-  output = 0;
-  int foo = harmlevels[0] >> 2;
-  int output1 = (((oma_wavetable1[tempz[0]] >> 2) + (((output_table[tempz[0]] *foo)>> 7))) * envelopes[0]) >> 8;
-  foo = harmlevels[1] >> 2;
-  int output2 = (((oma_wavetable1[tempz[1]] >> 2) + (((output_table[tempz[1]] *foo)>> 7))) * envelopes[1]) >> 8;
-  foo = harmlevels[2] >> 2;
-  int output3 = (((oma_wavetable1[tempz[2]] >> 2) + (((output_table[tempz[2]] *foo)>> 7))) * envelopes[2]) >> 8;
-  foo = harmlevels[3] >> 2;
-  int output4 = (((oma_wavetable1[tempz[3]] >> 2) + (((output_table[tempz[3]] *foo)>> 7))) * envelopes[3]) >> 8;
+  long output1 = ( oma_wavetable1[tempz[0]] + ((output_table[tempz[0] * harmlevels[0]) >> 8) ) * envelopes[0];
+  long output2 = ( oma_wavetable1[tempz[1]] + ((output_table[tempz[1] * harmlevels[1]) >> 8) ) * envelopes[1];
+  long output3 = ( oma_wavetable1[tempz[2]] + ((output_table[tempz[2] * harmlevels[2]) >> 8) ) * envelopes[2];
+  long output4 = ( oma_wavetable1[tempz[3]] + ((output_table[tempz[3] * harmlevels[3]) >> 8) ) * envelopes[3];
 
-
-  output = (output1 + output2 + output3 + output4) * 30;
+  output = (output1 + output2 + output3 + output4) >> 8;
   
   return (int) output;
 }
