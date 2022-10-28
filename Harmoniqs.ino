@@ -245,7 +245,7 @@ void updateControl() {
     gate = false;
   }
 
-  harm_level = harm_level_knob >> 2; 
+  harm_level = harm_level_knob >> 3; 
   harm_type = harm_type_knob;
 
   voct = mozziAnalogRead(VOCT_PIN);
@@ -296,8 +296,6 @@ void updateControl() {
     envelope4.setLevels(255,sustain,sustain,0);
     envelope4.setTimes(attack,decay,64000,release_ms);
     envelope4.setSustainLevel(sustain);
-
-
 
     if (gate || adsr_to_vol_cv) {
       
@@ -492,14 +490,42 @@ void updateControl() {
 }
 
 int updateAudio() {
+
   int tempz[4] = { saw1.next(), saw2.next(), saw3.next(), saw4.next() };
+/*
+  output = (oma_wavetable1[tempz[0]] + ((output_table[tempz[0]] * harmlevels[0]) >> 8)) * envelopes[0];
+  output += (oma_wavetable1[tempz[1]] + ((output_table[tempz[1]] * harmlevels[1]) >> 8)) * envelopes[1];
+  output += (oma_wavetable1[tempz[2]] + ((output_table[tempz[2]] * harmlevels[2]) >> 8)) * envelopes[2];
+  output += (oma_wavetable1[tempz[3]] + ((output_table[tempz[3]] * harmlevels[3]) >> 8)) * envelopes[3];
+*/
+/*
+  int foo = harmlevels[0];
+  output = (((oma_wavetable1[tempz[0]] >> 2) + (((output_table[tempz[0]] *foo)>> 10))) * envelopes[0]) >> 8;
+  foo = harmlevels[1];
+  output += (((oma_wavetable1[tempz[1]] >> 2) + (((output_table[tempz[1]] *foo)>> 10))) * envelopes[1]) >> 8;
+  foo = harmlevels[2];
+  output += (((oma_wavetable1[tempz[2]] >> 2) + (((output_table[tempz[2]] *foo)>> 10))) * envelopes[2]) >> 8;
+  foo = harmlevels[3];
+  output += (((oma_wavetable1[tempz[3]] >> 2) + (((output_table[tempz[3]] *foo)>> 10))) * envelopes[3]) >> 8;
+*/
+  // harmlevels[0] = 0 - 127
+  // output_table[tempz[0]] = = -128 - +127
 
-  long output1 = ( oma_wavetable1[tempz[0]] + ((output_table[tempz[0] * harmlevels[0]) >> 8) ) * envelopes[0];
-  long output2 = ( oma_wavetable1[tempz[1]] + ((output_table[tempz[1] * harmlevels[1]) >> 8) ) * envelopes[1];
-  long output3 = ( oma_wavetable1[tempz[2]] + ((output_table[tempz[2] * harmlevels[2]) >> 8) ) * envelopes[2];
-  long output4 = ( oma_wavetable1[tempz[3]] + ((output_table[tempz[3] * harmlevels[3]) >> 8) ) * envelopes[3];
+  int outputs[4];
 
-  output = (output1 + output2 + output3 + output4) >> 8;
+  for (int i = 0; i < 4 ; i++) {
+    int temp_harmlevel = harmlevels[i];
+    int temp_harmonics = output_table[tempz[i]] >> 1;
+    int basefreq = oma_wavetable1[tempz[i]] >> 2;
+    int temp_harmonics_leveled = (temp_harmonics * temp_harmlevel) >> 8;
+    basefreq = basefreq * envelopes[i];
+    temp_harmonics_leveled = temp_harmonics_leveled * envelopes[i];
+    int temp_output = ((basefreq + temp_harmonics_leveled)) >> 4;
+
+    outputs[i] = temp_output;
+  }
+
+  output = (outputs[0] + outputs[1] + outputs[2] + outputs[3]);
   
   return (int) output;
 }
